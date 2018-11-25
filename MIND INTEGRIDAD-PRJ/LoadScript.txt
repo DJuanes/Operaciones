@@ -1,0 +1,580 @@
+﻿///$tab SEGURIDAD
+//SECTION ACCESS;
+//LOAD ACCESS, 
+//     NTNAME, 
+//     KEY_COLABORA
+//FROM SA\Seguridad_Integridad.xls
+//(biff, embedded labels, table is ACCESO_PRODUCCION$);
+//
+//SECTION APPLICATION;
+
+SEGURIDAD:
+LOAD * INLINE [
+    KEY_COLABORA
+    1
+    0
+];
+///$tab INCLUDE
+$(MUST_INCLUDE=CFG\CONFIG.TXT);
+///$tab SET
+SET V_SELECCIONES_ACTUALES = 0;
+SET vUserManual = 0;
+
+LET S_FECHA_INICIAL = Floor(YearStart(AddYears(Today(),-$(S_AÑOS_HISTORIA))));
+LET S_FECHA_FINAL = Floor(YearEnd(Today()));
+///$tab MAPPING
+Distrito_Numero_Map:
+MAPPING LOAD * INLINE [
+	Distrito_Letra, Distrito_Numero
+	Uno, 1
+	Dos, 2
+	Tres, 3
+	Cuatro, 4
+	Cinco, 5
+	Siete, 7
+	Ocho, 8
+	Nueve, 9
+	DP, 10
+	CSG Cuatro, 11
+	CSG GSJ, 12
+];
+
+Instalaciones_Map:
+MAPPING LOAD Instalacion_Zafiro, Instalacion_Area
+FROM $(vSTG_ZAFIRO)\STG_ZAFIRO_10_INSTALACIONES.QVD(qvd);
+///$tab PUNTOS_CORROSION
+Puntos:
+LOAD
+	_KEY_FECHA, 
+	_KEY_PUNTO, 
+	_KEY_PUNTO_MES, 
+	_KEY_INSTALACION, 
+	[Tipo de Medio], 
+	[Tipo de Sistema], 
+	Medicion																		AS Medicion_Punto, 
+	Target																			AS Target_Punto
+FROM ..\..\STG\INTEGRIDAD\QVD\STG_INTEGRIDAD_10_PUNTOS.QVD(qvd);
+///$tab TARGET
+Target:
+LOAD
+	Medicion, 
+	_KEY_FECHA, 
+	Target
+FROM ..\..\STG\INTEGRIDAD\QVD\STG_INTEGRIDAD_10_TARGET.QVD(qvd);
+///$tab INSTALACIONES
+Instalaciones:
+LOAD
+	Instalacion_Zafiro 																AS _KEY_INSTALACION,
+	Instalacion_Id, 
+	Instalacion, 
+	Instalacion_Zafiro, 
+	Instalacion_Tipo, 
+	Instalacion_Clase, 
+	Instalacion_UG, 
+	Instalacion_Area, 
+    Dual(Instalacion_Distrito,
+    	ApplyMap('Distrito_Numero_Map', Instalacion_Distrito))						AS Instalacion_Distrito
+FROM $(vSTG_ZAFIRO)\STG_ZAFIRO_10_INSTALACIONES.QVD(qvd)
+WHERE Instalacion_UG = 'Golfo San Jorge';
+
+CONCATENATE (Instalaciones)
+LOAD
+	'Sin Instalación-' & Distrito													AS _KEY_INSTALACION,
+    Dual(Distrito, ApplyMap('Distrito_Numero_Map', Distrito))						AS Instalacion_Distrito,
+	'Cerro Dragón'																	AS Instalacion_Area
+FROM ..\..\STG\INTEGRIDAD\QVD\STG_INTEGRIDAD_10_EQUIPOS_RECTIFICADORES.QVD(qvd);
+///$tab CORROSION
+Corrosion:
+LOAD
+	_KEY_INSTALACION_MES, 
+	_KEY_INSTALACION, 
+	_KEY_PUNTO_MES, 
+	_KEY_PUNTO, 
+	_KEY_FECHA, 
+	ORIGEN_ANALISIS, 
+	DIA_OPERATIVO, 
+	NUMERO_DE_PROTOCOLO, 
+	FUENTE, 
+	PH_DE_LABORATORIO, 
+	PH_IN_SITU, 
+	DENSIDAD, 
+	TEMPERATURA_IN_SITU, 
+	TEMPERATURA_LABORATORIO, 
+	CONDUCTIVIDAD, 
+	RESISTIVIDAD, 
+	TOTAL_DE_SOLIDOS_DISUELTOS, 
+	CLORUROS, 
+	SULFATOS, 
+	CARBONATOS, 
+	BICARBONATOS, 
+	CALCIO, 
+	MAGNESIO, 
+	HIERRO_TOTAL, 
+	SODIO, 
+	SALINIDAD, 
+	ALCALINIDAD, 
+	RESIDUO_SECO, 
+	DUREZA_TOTAL, 
+	POTASIO, 
+	BARIO, 
+	ESTRONCIO, 
+	INDEX_STIFF_DAVIES_20C, 
+	P_20C, 
+	INDEX_STIFF_DAVIES_50C, 
+	P_50C, 
+	INDEX_STIFF_DAVIES_80C, 
+	P_80C, 
+	PRESION_50C, 
+	SULFATO_DE_CALCIO_50C_YESO, 
+	SULFATO_DE_CALCIO_50C_SEMI_HID, 
+	SULFATO_DE_CALCIO_50C_DESHID, 
+	CALCIO_SULFATO_DE_BARIO_50C, 
+	CALCIO_SULFATO_ESTRONCIO_50C, 
+	PRESION_80C, 
+	SULFATO_DE_CALCIO_80C_YESO, 
+	SULFATO_DE_CALCIO_80C_SEMI_HID, 
+	SULFATO_DE_CALCIO_80C_DESHID, 
+	CALCIO_SULFATO_DE_BARIO_80C, 
+	CALCIO_SULFATO_ESTRONCIO_80C, 
+	SH2, 
+	CO2, 
+	BSR_MESOFILOS, 
+	BSR_TERMOFILOS, 
+	COSTO, 
+	TSS, 
+	SOLIDOS_EN_SUSPENSION, 
+	ORGANICO, 
+	SOLIDOS_SOLUBLES_EN_ACIDO, 
+	SOLIDOS_INSOLUBLES, 
+	O2, 
+	OW, 
+	SULFUROS, 
+	CO2_DISUELTOS, 
+	SO3_RESIDUAL, 
+	AMINAS_RESIDUAL, 
+	FOSFONATO, 
+	PRESION_PSI, 
+	COMENTARIOS, 
+	NRO_DE_PARTE, 
+	PESO_INICIAL, 
+	SUPERFICIE, 
+	NUMERO_DE_CUPON, 
+	DIAS_EXPOSICION_PROGRAMADO, 
+	PESO_FINAL, 
+	VELOCIDAD_CORROSION, 
+	CAUSA_DE_ATAQUE, 
+	VELOCIDAD_PICADO, 
+	DIA_DE_INFORME, 
+	THERMOPHILEBACTERIAITEM, 
+	MESOPHILEBACTERIATYPE, 
+	BRS_THERMOPHILEBACTERIAITEM, 
+	BRS_MESOPHILEBACTERIATYPE, 
+	FECHA_HORA,
+	FLAG_PUNTO_VCOR
+	FROM ..\..\STG\INTEGRIDAD\QVD\STG_INTEGRIDAD_20_CORROSION.QVD(qvd)
+WHERE Exists(_KEY_PUNTO);
+
+
+DROP FIELD _KEY_PUNTO FROM Puntos;
+
+
+Corrosion_Mensual:
+LOAD
+	_KEY_INSTALACION_MES, 
+	O2_Cumplimiento, 
+	OW_Cumplimiento, 
+	TSS_Cumplimiento, 
+	BSR_Cumplimiento, 
+	VCOR_Cumplimiento, 
+	O2_CumplimientoPonderado, 
+	OW_CumplimientoPonderado, 
+	TSS_CumplimientoPonderado, 
+	BSR_CumplimientoPonderado, 
+	VCOR_CumplimientoPonderado, 
+	O2_Avg, 
+	OW_Avg, 
+	TSS_Avg, 
+	BSR_Avg, 
+	VCOR_Avg, 
+	O2_T, 
+	OW_T, 
+	TSS_T, 
+	BSR_T, 
+	VCORR_T
+FROM ..\..\STG\INTEGRIDAD\QVD\STG_INTEGRIDAD_30_CORROSION_MENSUAL.QVD(qvd);
+
+///$tab PRODUCCION
+Produccion_tmp:
+LOAD
+	_KEY_PIA_MES																	AS _KEY_INSTALACION_MES, 
+	InyeccionAgua
+FROM $(vSTG_ZAFIRO)\STG_ZAFIRO_40_INSTALACIONES_CONSOLIDADO_MENSUAL.QVD(qvd)
+WHERE InyeccionAgua>0;
+
+INNER JOIN(Produccion_tmp)
+LOAD
+	_KEY_INSTALACION_MES, 
+	_KEY_INSTALACION, 
+	ApplyMap('Instalaciones_Map', _KEY_INSTALACION, Null())							AS Instalacion_Area,
+	_KEY_FECHA
+FROM $(vSTG_ZAFIRO)\STG_ZAFIRO_20_CALENDARIO_INSTALACIONES.QVD(qvd)
+WHERE _Flag_FinDeMes = 1 and _KEY_FECHA <= Today();
+
+
+Produccion:
+LOAD
+	Instalacion_Area,
+	_KEY_FECHA,
+	Sum(InyeccionAgua)																AS InyeccionAgua_Area
+RESIDENT Produccion_tmp
+GROUP BY Instalacion_Area, _KEY_FECHA;
+
+LEFT JOIN(Produccion)
+LOAD
+	_KEY_INSTALACION_MES,
+	_KEY_INSTALACION,
+	_KEY_FECHA,
+	Instalacion_Area,
+	Sum(InyeccionAgua)																AS InyeccionAgua
+RESIDENT Produccion_tmp
+GROUP BY _KEY_INSTALACION_MES, _KEY_INSTALACION, _KEY_FECHA, Instalacion_Area;
+
+DROP FIELD Instalacion_Area FROM Produccion;
+DROP TABLE Produccion_tmp;
+///$tab RECTIFICADORES
+Rectificadores:
+LOAD
+	'Sin Instalación-' & Distrito & '-' & Floor(MonthEnd(_KEY_FECHA))				AS _KEY_INSTALACION_MES,
+	'Sin Instalación-' & Distrito													AS _KEY_INSTALACION,
+	Floor(MonthEnd(_KEY_FECHA))														AS _KEY_FECHA,
+	Nuevos, 
+	Instalados, 
+	On, 
+	Reactivados
+FROM ..\..\STG\INTEGRIDAD\QVD\STG_INTEGRIDAD_10_EQUIPOS_RECTIFICADORES.QVD(qvd);
+///$tab EPAS
+Epas:
+LOAD
+	_KEY_INSTALACION_MES, 
+	_KEY_INSTALACION, 
+	_KEY_FECHA, 
+	[NOMBRE CUPON], 
+	[Fecha Medición], 
+	TIPO, 
+	idepa, 
+	[Potencial ON], 
+	[Potencial OFF (2 LLAVES)], 
+	[Potencial NAT (SIN PC)-N], 
+	[I Prot (uA) (C1)], 
+	[I Prot (uA) (C2)], 
+	[Velocidad Corrosión (mpy)], 
+	Estacion, 
+	Servicio, 
+	OTROS, 
+	Linea, 
+	[Informe Fecha Ajuste], 
+	Motivo, 
+	[Prioridad Ajuste], 
+	[AJUSTE REALIZADO], 
+	[Resultado de Ajuste], 
+	TP, 
+	Progresiva, 
+	Estado, 
+	[Fecha de Montaje], 
+	[Sistema Proteccion], 
+	[Observacion de Montaje], 
+	Activo, 
+	NATURAL, 
+	RP, 
+	[Vcor mm/año RP], 
+	[Vcor mpy RP], 
+	[RP TAFEL], 
+	Ba, 
+	Bc, 
+	[Vcor mm/año TAFEL], 
+	[Vcor mpy TAFEL], 
+	Observaciones, 
+	[AÑO MEDICION], 
+	[MES MEDICION], 
+	ON, 
+	IR, 
+	OFF, 
+	NAT, 
+	POLARIZA, 
+	[CRITERIO -850 mV], 
+	[APTO POLARIZA], 
+	Verificado, 
+	[APTO KPI PROTG], 
+	[ANNUAL ROLLING], 
+	[POT OFF PROMEDIO "MEDIDO"], 
+	[POT OFF Mas Representativo "MEDIDO"], 
+	[Punto de Medicion], 
+	[Requiere Medir 2° Vuelta], 
+	[Plan de Accion], 
+	FechaReferencia, 
+	[CRITERIO 100 mV]
+FROM ..\..\STG\INTEGRIDAD\QVD\STG_INTEGRIDAD_10_EPAS.QVD(qvd);
+///$tab BES
+BES:
+LOAD _KEY_INSTALACION_MES, 
+     _KEY_FECHA, 
+     POZO &'-'&Date(_KEY_FECHA) as _KEY_DOWNTIME,
+     POZO, 
+     [Critica (Si/No)], 
+     _KEY_INSTALACION, 
+     [Fecha instalación], 
+     [Dias Run], 
+     Continua, 
+     Cámara, 
+     Recomendado, 
+     [Volumen (lts)], 
+     [Vida útil Tentativo], 
+     [DWT Oil], 
+     Estado_BES, 
+     Producto_1, 
+     Litros_1, 
+     Fecha_1, 
+     Dias_1, 
+     Producto_2, 
+     Litros_2, 
+     Fecha_2, 
+     Dias_2, 
+     [Dias desde ultimo encapsulado], 
+     [Flia reco], 
+     [Flia encap], 
+     [Flia UA], 
+     Continua1, 
+     [Encapsulado vigente], 
+     [Otros motivos], 
+     Encapsulado, 
+     [Inhibición vencida con desincrustante], 
+     [Inhibición vencida], 
+     Desincrustante, 
+     [Falta recomendación], 
+     [Sin tratamiento], 
+     [Estado final] , 
+     [Sub estado final], 
+     [A reencapsular], 
+     [Observaciones de aplicación], 
+     [Día ultimo valor], 
+     Calcio, 
+     Fosfonato, 
+     Muestreo
+FROM [..\..\STG\INTEGRIDAD\QVD\STG_INTEGRIDAD_10_BES.QVD] (qvd);
+
+///$tab INTEGRIDAD
+Integridad:
+LOAD _KEY_DISTRITO_FECHA,
+	 _KEY_FECHA, 
+     UG, 
+     Distrito, 
+     [Cantidad de Ductos Programados (Limpieza Interna)], 
+     [Cantidad de Ductos Limpiados Internamente], 
+     [Cantidad de AR Programados para Entrega], 
+     [Cantidad de AR Entregados], 
+     [Cantidad de RBI Programados para Entrega], 
+     [Cantidad de RBI Entregados], 
+     [Cantidad de Mts. De Rep de Rev. Programados], 
+     [Cantidad de Mts. De Rep de Rev. Realizados], 
+     [Formulario A1 Presentado], 
+     [Formulario A1 Definitivo], 
+     [Formulario A1 Borrador], 
+     [Auditorias a Tk Abierto Programada], 
+     [Auditorias a Tk Abierto Realizada], 
+     [Auditorias Programadas Emisión Acústica], 
+     [Auditorias Realizadas Emisión Acústica], 
+     [Tanques programados (Plan B)], 
+     [Tanques Realizados (Plan B)], 
+     [Tanques programados (Plan C)], 
+     [Tanques Realizados (Plan C)]
+FROM
+[..\..\STG\INTEGRIDAD\QVD\STG_INTEGRIDAD_10_INTEGRIDAD.QVD]
+(qvd);
+
+
+
+///$tab TANQUES
+Auditoria_Tanques:
+LOAD
+	_KEY_FECHA, 
+	_KEY_DISTRITO_FECHA, 
+	Id_MANTEC, 
+	Distrito, 
+	IF(IsNull(Probabilidad),'S/A', Probabilidad)	 AS Probabilidad, 
+	IF(IsNull(Consecuencia),'S/A', Consecuencia)	 AS Consecuencia,
+	IF(Not IsNull(Riesgo), Riesgo, 'S/A') AS Riesgo,
+	1 AS Flag_ID_MANTEC
+FROM
+[..\..\STG\INTEGRIDAD\QVD\STG_INTEGRIDAD_10_RBI.QVD]
+(qvd);
+
+Tanques:
+LOAD 
+	Id_MANTEC, 
+	CIT, 
+	[N° SAP], 
+	UT, 	
+	Resolución, 
+	Formulario, 
+	N°, 
+	[Estado Form.], 
+	Auditora, 
+	[Tipo Auditoria],
+	Resultado, 
+	[Fecha Inicio], 
+	[Fecha Venc.], 
+	Observaciones_Tanques
+FROM
+[..\..\STG\INTEGRIDAD\QVD\STG_INTEGRIDAD_10_TANQUES.QVD]
+(qvd);
+///$tab PARADAS
+Perdidas:
+LOAD _KEY_INSTALACION_MES,      
+     Downtime_Petroleo, 
+     Downtime_Gas, 
+     FactorPlanta_Petroleo, 
+     FactorPlanta_Gas
+FROM
+[..\..\STG\INTEGRIDAD\QVD\STG_INTEGRIDAD_10_PERDIDAS.QVD]
+(qvd);
+///$tab DESEMULSIONANTE
+Desemulsionante:
+LOAD
+	_KEY_INSTALACION_MES, 
+	_KEY_INSTALACION, 
+	_KEY_FECHA, 
+	[Total Desemulsionante (Lts/dia)], 
+	[Target Desemulsionante (Lts/dia)], 
+	Petroleo, 
+	Fluido, 
+	Corte_Agua, 
+	[Total Desemulsionante (Lts/m3 neta)], 
+	[Total Desemulsionante (Lts/m3 bruta)]
+FROM ..\..\STG\INTEGRIDAD\QVD\STG_INTEGRIDAD_10_DESEMULSIONANTE.QVD(qvd);
+///$tab LINK
+Link_TMP:
+LOAD DISTINCT
+	_KEY_INSTALACION_MES,
+	_KEY_INSTALACION,
+	_KEY_FECHA,
+    'Corrosion' AS Fuente
+RESIDENT Corrosion;
+
+CONCATENATE (Link_TMP)
+LOAD DISTINCT
+	_KEY_INSTALACION_MES,
+	_KEY_INSTALACION,
+	_KEY_FECHA,
+    'Epas' AS Fuente
+RESIDENT Epas;
+
+CONCATENATE (Link_TMP)
+LOAD DISTINCT
+	_KEY_INSTALACION_MES,
+	_KEY_INSTALACION,
+	_KEY_FECHA,
+    'Produccion' AS Fuente
+RESIDENT Produccion;
+
+CONCATENATE (Link_TMP)
+LOAD DISTINCT
+	_KEY_INSTALACION_MES,
+	_KEY_INSTALACION,
+	_KEY_FECHA,
+    'Rectificadores' AS Fuente
+RESIDENT Rectificadores;
+
+CONCATENATE (Link_TMP)
+LOAD DISTINCT
+	_KEY_INSTALACION_MES,
+	_KEY_INSTALACION,
+	_KEY_FECHA,
+    'BES' AS Fuente
+RESIDENT BES;
+
+CONCATENATE (Link_TMP)
+LOAD DISTINCT
+	_KEY_INSTALACION_MES,
+	_KEY_INSTALACION,
+	_KEY_FECHA,
+    'DESEMULSIONANTE' AS Fuente
+RESIDENT Desemulsionante;
+
+LEFT JOIN (Link_TMP)
+LOAD _KEY_INSTALACION,
+	 Instalacion_UG					AS UG,
+	 Instalacion_Distrito			AS Distrito
+RESIDENT Instalaciones;
+
+Link:
+LOAD UG & '-' & _KEY_FECHA			AS _KEY_UG_FECHA,
+	 *
+RESIDENT Link_TMP;
+
+DROP TABLE Link_TMP;
+
+CONCATENATE (Link)
+LOAD _KEY_DISTRITO_FECHA,
+	 _KEY_FECHA,
+	 UG,
+	 Distrito,
+	 'Integridad' 					AS Fuente
+RESIDENT Integridad;
+
+CONCATENATE (Link)
+LOAD _KEY_DISTRITO_FECHA,
+	 _KEY_FECHA,
+	 Distrito,
+	 'Tanques'	 					AS Fuente
+RESIDENT Auditoria_Tanques;
+
+DROP FIELDS _KEY_FECHA, _KEY_INSTALACION FROM Corrosion;
+DROP FIELDS _KEY_FECHA, _KEY_INSTALACION FROM Epas;
+DROP FIELDS _KEY_FECHA, _KEY_INSTALACION FROM Produccion;
+DROP FIELDS _KEY_FECHA, _KEY_INSTALACION FROM Rectificadores;
+DROP FIELDS _KEY_FECHA, _KEY_INSTALACION FROM Puntos;
+DROP FIELDS _KEY_FECHA, _KEY_INSTALACION FROM BES;
+DROP FIELDS _KEY_FECHA, _KEY_INSTALACION FROM Desemulsionante;
+DROP FIELDS Instalacion_UG, Instalacion_Distrito FROM Instalaciones;
+DROP FIELDS _KEY_FECHA, UG, Distrito FROM Integridad;
+DROP FIELDS _KEY_FECHA, Distrito FROM Auditoria_Tanques;
+///$tab CALENDARIO
+Calendario:
+LOAD
+	Num(%KEY_FECHA)																	AS _KEY_FECHA, 
+	MES#, 
+	FECHA, 
+	MES, 
+	SEMANA, 
+	DIASEMANA, 
+	DIA, 
+	AÑO, 
+	TRIMESTRE, 
+	QUARTER, 
+	QUARTER#, 
+	AÑOMES, 
+	CONSECUTIVOMES, 
+	MES_NOMBRE_COMPLETO,
+	_FLAG_REAL
+FROM $(vSTG_GENERAL)\STG_GENERAL_N01_DIM_CALENDARIO_GENERICO.QVD(qvd)
+WHERE Num(%KEY_FECHA) >= $(S_FECHA_INICIAL) and Num(%KEY_FECHA) <= $(S_FECHA_FINAL);
+///$tab ISLAS
+KPI_POLIGONOS:
+LOAD * INLINE [
+	KPI
+	TSS
+	OW
+	O2
+	BSR
+	VCorr
+];
+
+Tipo_Sistema:
+LOAD * INLINE [
+	Tipo_Sistema
+	'Petroleo',
+	'Gas',
+	'Agua',
+	'Inyeccion'
+];
+
